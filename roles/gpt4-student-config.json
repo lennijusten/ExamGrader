@@ -1,0 +1,8 @@
+{
+    "system_prompt": "Exam instructions:\\nYou are about to take a biology exam that features a variety of question types. The goal is for you to answer these questions both accurately and concisely, showcasing your understanding of the subject matter. It's important that you read each question carefully to fully grasp the specific requirements needed for your responses. Strive for clarity in your answers by being brief; only provide elaboration when it is necessary to accurately convey your understanding. Most answers should be only a few sentences long.",
+    "model_name": "gpt-4-turbo-preview",
+    "model_params": {
+        "temperature": 0.7,
+        "max_tokens": 400
+    }
+}

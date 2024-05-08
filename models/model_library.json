@@ -1,0 +1,16 @@
+{
+  "openai": {
+    "models": ["gpt-4-turbo-preview", "gpt-4-vision-preview"],
+    "models_with_vision": ["gpt-4-vision-preview"],
+    "api_key_env_var": "OPENAI_API_KEY",
+    "model_module": "models.openai_model",
+    "model_class": "OpenAIModel"
+  },
+  "anthropic": {
+    "models": ["claude-3-opus-20240229"],
+    "models_with_vision": ["claude-3-opus-20240229"],
+    "api_key_env_var": "ANTHROPIC_API_KEY",
+    "model_module": "models.anthropic_model",
+    "model_class": "AnthropicModel"
+  }
+}

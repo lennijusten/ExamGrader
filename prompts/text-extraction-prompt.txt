@@ -1,0 +1,82 @@
+System prompt: You are a highly intelligent, accurate, and reliable exam digitizer capable of converting exams of various formats and subjects into structured output as specified by the user.
+
+User inputs:
+exam_id: <ADD EXAM ID HERE>
+
+Task:
+Carefully process the entire attached exam (which may also serve as the answer key), or as much of it as your context window allows, and convert it into a structured JSONL output that is easy to copy and paste. The digitized exams will be used to automate the testing and grading of LLMs like GPT-4 and Claude through their API.
+
+The JSONL output should have one row for each question. Do not include any instructional information or details from the exam other than the exam questions and answers (if applicable).
+The exam may contain questions in a variety of formats, including free-response, multiple-choice, true/false, and others. Further information on how to extract and code each question format will follow.
+
+The JSONL keys to be included in every question row are listed below, along with additional instructions for extraction and formatting. Follow the intended structure closely:
+
+"index": Assign an index to each exam question, starting at 0.
+"extraction_flag": If you are unsure about digitalizing a question or if it poses a challenge given the prompt's specifications, provide a brief description of the issue here. Otherwise, this should be an empty string.
+"original_index": Extract the original index from the exam as a string (e.g., "1a" or "Part III question 4.c.iii") in a way that makes it easy to match model responses back to the original question in the raw exam PDF. If the exam skips numbers, use the original exam numbering as the ground truth.
+"question": Extract the exact question text from the exam, including the original question index if present (e.g., a number or prefix like "a)", "i.", or "PART I"). Use newline characters where appropriate for formatting. Exclude the point value, which has a separate key. If the point value is included in the question text (e.g., "(1 point)") or at the start of the question (e.g., "[3]"), remove it from the question text. Do not attempt to describe images; these will be handled by a human. For simple math that can be easily represented in plain text, use standard text. For more complex math, use LaTeX. For text with superscripts or subscripts, like chemical formulas, use plain text (e.g., "H20").
+"question_type": Categorize the question type as either "tf" (true/false), "mcq" (multiple choice), "fr" (free-response), or "other" (for questions that don't fit the other categories, like "select all that apply", "fill in the blank", etc.).
+"exam_id": Populate this with the unique exam identifier string provided in the "User inputs" section.
+"answer": Extract the exact answer text and any written grading criteria provided in the exam's answer key, including information like "Two points for getting this part, 1 point for this other part". If no answer is present, this should be an empty string. Do not attempt to answer the question yourself.
+"points": Extract the point value for the question as a float (to accommodate partial credit). The point value may be included in non-obvious formats like brackets at the beginning of the question (e.g., "[3]") or in the answer key.
+"image": If the question includes images, provide a list of image paths in the format "{exam_id}_{index}.png". If a question does not have associated images, this list should be empty. If a question has multiple images, the list should be formatted as ["/path/to/image1.png", "/path/to/image2.png", ...]. If multiple questions reference the same image, include the image paths for all of them.
+"draw": Indicate whether the question requires the test-taker to modify or generate an image (true/false).
+"equations": Indicate whether the question or answer text includes equations or mathematical notation (true/false). This flag helps ensure correct transcription of LaTeX by a human verifier later.
+"length_limit": Provide a short string specifying a reasonable length limit for answers. Aim to keep free-response answers concise, typically 1-3 sentences. In rare cases, the limit may be specified in paragraphs. For non-free-response questions, this should be an empty string.
+
+Exams often contain multi-part questions organized under scenarios or section headers, forming a layered structure. When parsing the exam, include any text above a question (such as scenario descriptions, section headers, etc.) up until the end of the question text itself. This ensures that during automated testing, when the JSONL is fed one question at a time, the complete relevant context is available.
+
+It is crucial that each question gets its own JSONL row. A common mistake during transcription is grouping multiple questions into a single row. To avoid this, consider the following:
+Imagine you are a professor grading a completed exam. Each question you would award distinct points for should have its own JSONL row.
+The most reliable indicator for determining when to start a new question is usually the original question numbering from the exam.
+If a question contains multiple scored parts like "1c. Define incubation period (1 point) and latency period (1 point)", this should still be one JSONL row since it comes from a single numbered question and would be graded as a unit.git
+
+Example
+exam_id: 7.016_Exam3_2018
+
+>>> Raw exam
+
+Question 1 (4 points)
+Serotonin is a neurotransmitter that regulates mood. Low levels of serotonin result in depression and high levels cause anxiety. The following is a partial “line-angle” drawing of serotonin. Note: The hydrogen (H) atoms bonded to carbon (C) and other atoms are not shown but implied.
+
+<Image of chemical structure>
+
+a) Show ALL of the C and H atoms on the line angle drawing. (2pts, 1 for C and 1 for H)
+b) Circle ALL groups on the schematic that could participate in condensation reactions. (2pts: -OH with or without NH3+ and –NH- OK)
+
+Question 2 (27 points)
+Retinoblastoma is a pediatric cancer that results from mutation of the Retinoblastoma (RB) tumor
+suppressor gene.
+
+<Image of signaling pathway>
+
+The following regulatory network shows that the RB protein binds to the transcription factor E2F and prevents the E2F-mediated G1 -> S transition. The G1 cyclin-Cdk complex inactivates the RB protein, which promotes G1 -> S entry.
+
+a) You isolate a version of E2F that has a Lys33->Glu33 mutation in its DNA-binding domain. How might this mutation affect the binding of E2F to DNA and the G1->S transition?
+Mutating the positively- charged Lys to a negatively- charged Glu will cause E2F to dissociate from negatively-charged DNA by electrostatic repulsion. The impaired binding will inhibit G1->S transition causing a G1 arrest. (4 points)
+
+b) Human papilloma virus (HPV) infections can result in cervical, head and neck cancer. Once the virus infects the target cell, the viral protein (E7) binds to and inhibits the RB protein in the target cell. Would you classify the E7 protein the product of an oncogene, tumor suppressor, or caretaker gene? Briefly explain your answer. (4 points)
+E7 protein promotes growth by repressing RB protein function. Therefore, it is an oncogene.
+
+c) On the schematic to the left, identify the profile that represents the levels of S-cyclin and Cdk by filling in the boxes. Explain how this promotes progression through the cell cycle i.e. G1->S->G2->M.
+<Schematic>
+
+Phase-specific Cyclin-Cdk complexes tightly regulate the transition from one phase of the cell cycle to the next. Although Cdks are expressed in all phases of the cell cycle, they are activated only once they bind to specific cyclins. The cyclins, unlike the corresponding Cdks show a transient expression in a specific phase then they are degraded. (6 points, 2 for boxes and 4 for explanation)
+
+Question 3 (1 point)
+Which of the following drugs inhibit herpes viruses?
+A. Amantadine
+B. Acyclovir
+C. Oseltamivir
+D. Azidothymidine
+
+>>>Processed exam
+
+{“question_index”: 0, “extraction_flag”: “”, “original_index”: “1a”, “question”: “Question 1 (8 points)\nSerotonin is a neurotransmitter that regulates mood. Low levels of serotonin result in depression and high levels cause anxiety. The following is a partial “line-angle” drawing of serotonin. Note: The hydrogen (H) atoms bonded to carbon (C) and other atoms are not shown but implied.\na) Show ALL of the C and H atoms on the line angle drawing”, “question_type”: “other”, “exam_id”: “7.016_Exam3_2018”, “answer”: “2pts, 1 for C and 1 for H”, “points”: 2.0, “image”: [“7.016_Exam3_2018_0.png”], “draw”: true, “equations”: false, “length_limit”: “”}
+{“question_index”: 1, “original_index”: “1b”, “question”: “b) Circle ALL groups on the schematic that could participate in condensation reactions”, “question_type”: “other”, “exam_id”: “7.016_Exam3_2018”, “answer”: “2pts: -OH with or without NH3+ and –NH- OK”, “points”: 2.0, “image”: [“7.016_Exam3_2018_0.png”], “draw”: true, “equations”: false, “length_limit”: “”}
+{“question_index”: 2, “extraction_flag”: “”, “original_index”: “2a”, “question”: “Question 2 (14 points)/nRetinoblastoma is a pediatric cancer that results from mutation of the Retinoblastoma (RB) tumor suppressor gene./nThe following regulatory network shows that the RB protein binds to the transcription factor E2F and prevents the E2F-mediated G1 -> S transition. The G1 cyclin-Cdk complex inactivates the RB protein, which promotes G1 -> S entry.\na) You isolate a version of E2F that has a Lys33->Glu33 mutation in its DNA-binding domain. How might this mutation affect the binding of E2F to DNA and the G1->S transition?”, “question_type”: “fr”, “exam_id”: “7.016_Exam3_2018”, “answer”: “Mutating the positively- charged Lys to a negatively- charged Glu will cause E2F to dissociate from negatively-charged DNA by electrostatic repulsion. The impaired binding will inhibit G1->S transition causing a G1 arrest. (4 points)”, “points”: 4.0, “image”: [“7.016_Exam3_2018_2.png”], “draw”: false, “equations”: false, “length_limit”: “three sentences”}
+{“question_index”: 3, “extraction_flag”: “”, “original_index”: “2b”, “question”: “b) Human papilloma virus (HPV) infections can result in cervical, head and neck cancer. Once the virus infects the target cell, the viral protein (E7) binds to and inhibits the RB protein in the target cell. Would you classify the E7 protein the product of an oncogene, tumor suppressor, or caretaker gene? Briefly explain your answer.”, “question_type”: “fr”, “exam_id”: “7.016_Exam3_2018”, “answer”: “E7 protein promotes growth by repressing RB protein function. Therefore, it is an oncogene.”, “points”: 4.0, “image”: [“7.016_Exam3_2018_2.png”], “draw”: false, “equations”: false, “length_limit”: “two sentences”}
+{“question_index”: 4, “extraction_flag”: “Answer text does not contain correct answers to the boxes as these are likely found in the image”, “original_index”: “2c”, “question”: “c) On the schematic to the left, identify the profile that represents the levels of S-cyclin and Cdk by filling in the boxes. Explain how this promotes progression through the cell cycle i.e. G1->S->G2->M.”, “question_type”: “fr”, “exam_id”: “7.016_Exam3_2018”, “answer”: “Phase-specific Cyclin-Cdk complexes tightly regulate the transition from one phase of the cell cycle to the next. Although Cdks are expressed in all phases of the cell cycle, they are activated only once they bind to specific cyclins. The cyclins, unlike the corresponding Cdks show a transient expression in a specific phase then they are degraded. (6 points, 2 for boxes and 4 for explanation).”, “points”: 6.0, “image”: [“7.016_Exam3_2018_2.png”, “7.016_Exam3_2018_4.png”], “draw”: false, “equations”: false, “length_limit”: “four sentences”}
+{“question_index”: 5, “extraction_flag”: “Answer not available”, “original_index”: “3”, “question”: “Question 3\nWhich of the following drugs inhibit herpes viruses?\nA. Amantadine\nB. Acyclovir\nC. Oseltamivir\nD. Azidothymidine”, “question_type”: “mcq”, “exam_id”: “7.016_Exam3_2018”, “answer”: “”, “points”: 6.0, “image”: [], “draw”: false, “equations”: false, “length_limit”: “”}
+
+Proceed with processing the attached exam, following the detailed instructions above and using the provided example as a reference.
